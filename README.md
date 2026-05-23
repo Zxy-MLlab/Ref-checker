@@ -1,5 +1,9 @@
 # Ref. Checker
 
+<p align="center">
+  <img src="assets/screenshots/overview.png" alt="Ref. Checker interface" width="1100" />
+</p>
+
 A no-LLM bibliography verification tool for `.bib` files.
 
 Ref. Checker parses BibTeX entries, classifies references, validates them against configurable sources, detects duplicates, and provides a web UI for review, correction, and export. It is designed for research workflows that need **deterministic**, **rule-based**, and **auditable** reference checking without relying on AI generation.
@@ -72,20 +76,6 @@ uvicorn backend_api:app --host 0.0.0.0 --port 8000 --reload
 python3 -m pip install -r requirements.txt
 uvicorn backend_api:app --host 0.0.0.0 --port 8000 --reload
 ```
-
-## Screenshots
-
-### Overview
-
-![Overview](assets/screenshots/overview.png)
-
-### Source Configuration
-
-![Source Configuration](assets/screenshots/source-config.png)
-
-### Verification Report
-
-![Verification Report](assets/screenshots/report.png)
 
 ## Interface Workflow
 
@@ -253,3 +243,17 @@ Ref. Checker is built for practical BibTeX QA workflows. It focuses on:
 - interactive correction
 
 It does **not** use LLMs or AI generation for validation.
+
+## Citation
+
+If you find Ref. Checker useful in your work, please cite:
+
+```bibtex
+@misc{zhou2026refchecker,
+  author       = {Xueyang Zhou},
+  title        = {Ref. Checker: A No-LLM Bibliography Verification Tool for BibTeX Files},
+  year         = {2026},
+  howpublished = {\url{https://github.com/Zxy-MLlab/Ref-checker}},
+  note         = {GitHub repository}
+}
+```
