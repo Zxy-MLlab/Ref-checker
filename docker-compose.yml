@@ -1,0 +1,21 @@
+services:
+  ref-checker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ref-checker
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      REFCHECK_JOB_STORE_DIR: /app/data/.job_store
+      REFCHECK_CACHE_PATH: /app/data/.api_refcheck_cache.json
+      REFCHECK_MAX_UPLOAD_BYTES: ${REFCHECK_MAX_UPLOAD_BYTES:-10485760}
+      SERPAPI_API_KEY: ${SERPAPI_API_KEY:-}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+    volumes:
+      - refcheck_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  refcheck_data:

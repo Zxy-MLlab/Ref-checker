@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Ref. Checker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="app-frame">
+      <aside class="history-sidebar">
+        <div class="sidebar-head">
+          <div class="brand-lockup">
+            <span class="brand-mark">B</span>
+            <div>
+              <p class="brand-name">Ref. Checker</p>
+              <p class="brand-subtitle" id="brandSubtitle">History</p>
+            </div>
+          </div>
+          <button class="sidebar-action-button" id="newSessionButton" type="button">＋ 新建会话</button>
+        </div>
+
+        <div class="sidebar-section">
+          <p class="sidebar-label" id="historyLabel">历史记录</p>
+          <div class="history-list" id="historyList">
+            <div class="history-empty">还没有任务记录</div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="main-panel">
+        <header class="main-topbar">
+          <div class="topbar-actions">
+            <button class="button button-secondary small-button" id="languageToggleButton" type="button">EN</button>
+            <button class="button button-secondary small-button" id="openSourcesButton" type="button">数据源</button>
+            <a class="ghost-link" id="apiDocsLink" href="/docs" target="_blank" rel="noreferrer">API Docs</a>
+          </div>
+        </header>
+
+        <section class="hero-workspace">
+          <div class="upload-panel">
+            <label class="upload-card" for="bibFile">
+              <input id="bibFile" type="file" accept=".bib" hidden />
+              <span class="upload-icon">.bib</span>
+              <strong id="uploadTitle">选择或拖拽 BibTeX 文件</strong>
+              <p id="uploadDescription">上传后可先解析，再开始验证。</p>
+            </label>
+
+            <div class="file-chip hidden" id="fileChip"></div>
+
+            <div class="upload-controls">
+              <div class="actions centered-actions">
+                <button class="button button-secondary" id="parseButton" type="button">解析</button>
+                <button class="button button-primary" id="runButton" type="button">开始验证</button>
+              </div>
+
+              <div class="progress-panel hidden" id="progressPanel">
+                <div class="progress-head">
+                  <span id="progressLabel">正在验证...</span>
+                  <span id="progressCount">0 / 0</span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-bar" id="progressBar"></div>
+                </div>
+              </div>
+            </div>
+
+            <p class="helper-text centered-text" id="statusText">No file selected.</p>
+          </div>
+        </section>
+
+        <section class="results-shell">
+          <div class="results-head">
+            <div class="result-tabs">
+              <button class="tab-button active" type="button" data-tab="parsed">解析结果</button>
+              <button class="tab-button" type="button" data-tab="duplicates">重复文献</button>
+              <button class="tab-button" type="button" data-tab="report">验证报告</button>
+            </div>
+            <div class="result-actions">
+              <button class="button button-secondary small-button" id="refreshJobButton" type="button">刷新</button>
+              <a class="button button-secondary small-button disabled-link" id="downloadJsonLink" href="#" download>JSON</a>
+              <a class="button button-secondary small-button disabled-link" id="downloadXlsxLink" href="#" download>Excel</a>
+              <a class="button button-secondary small-button disabled-link" id="downloadBibLink" href="#" download>BIB</a>
+            </div>
+          </div>
+
+          <article class="result-panel active" data-panel="parsed">
+            <div class="panel-head">
+              <h3 id="parsedPanelTitle">解析结果</h3>
+              <div class="parsed-category-filters" id="parsedCategoryFilters">
+                <button class="parsed-filter-chip active" type="button" data-parsed-filter="ALL">All 0</button>
+                <button class="parsed-filter-chip parsed-filter-paper" type="button" data-parsed-filter="paper">论文 0</button>
+                <button class="parsed-filter-chip parsed-filter-blog" type="button" data-parsed-filter="blog">博客 0</button>
+                <button class="parsed-filter-chip parsed-filter-github" type="button" data-parsed-filter="github">GitHub 0</button>
+              </div>
+            </div>
+            <div class="result-placeholder" id="parsedPlaceholder">解析后这里会显示文献条目。</div>
+            <div class="paper-grid hidden" id="parsedTableShell">
+              <div id="entriesTableBody"></div>
+            </div>
+            <div class="pagination hidden" id="parsedPagination">
+              <div class="pagination-meta" id="parsedPaginationMeta">第 1 页，共 1 页</div>
+              <div class="pagination-actions">
+                <button class="button button-secondary small-button" id="parsedPrevButton" type="button">上一页</button>
+                <button class="button button-secondary small-button" id="parsedNextButton" type="button">下一页</button>
+              </div>
+            </div>
+          </article>
+
+          <article class="result-panel" data-panel="duplicates">
+            <div class="panel-head">
+              <h3 id="duplicatesPanelTitle">重复文献</h3>
+              <span class="pill" id="duplicateCountPill">0 groups</span>
+            </div>
+            <div class="result-placeholder" id="duplicatesPlaceholder">如果检测到重复文献，会在这里展示。</div>
+            <div id="duplicateList" class="duplicate-list hidden"></div>
+          </article>
+
+          <article class="result-panel" data-panel="report">
+            <div class="report-toolbar hidden" id="reportToolbar">
+              <div class="report-filters" id="reportFilters">
+                <button class="filter-chip active" type="button" data-filter="ALL" data-label="全部">全部</button>
+                <button class="filter-chip" type="button" data-filter="FOUND_MATCH" data-label="匹配">匹配</button>
+                <button class="filter-chip" type="button" data-filter="FOUND_MISMATCH" data-label="不匹配">不匹配</button>
+                <button class="filter-chip" type="button" data-filter="NOT_FOUND" data-label="找不到">找不到</button>
+              </div>
+              <div class="report-toolbar-right">
+                <label class="search-field">
+                  <span class="sr-only">搜索验证结果</span>
+                  <span class="search-icon" aria-hidden="true">🔍</span>
+                  <input id="reportSearchInput" class="text-input" type="text" placeholder="搜索标题、作者、期刊、Key" />
+                </label>
+                <div class="parsed-category-filters" id="reportCategoryFilters">
+                  <button class="parsed-filter-chip active" type="button" data-report-category-filter="ALL">All 0</button>
+                  <button class="parsed-filter-chip parsed-filter-paper" type="button" data-report-category-filter="paper">论文 0</button>
+                  <button class="parsed-filter-chip parsed-filter-blog" type="button" data-report-category-filter="blog">博客 0</button>
+                  <button class="parsed-filter-chip parsed-filter-github" type="button" data-report-category-filter="github">GitHub 0</button>
+                </div>
+              </div>
+            </div>
+            <div class="result-placeholder" id="reportPlaceholder">运行验证任务后，这里会显示最终报告。</div>
+            <div class="report-list hidden" id="reportTableShell">
+              <div id="reportTableBody"></div>
+            </div>
+            <div class="pagination hidden" id="reportPagination">
+              <div class="pagination-meta" id="reportPaginationMeta">第 1 页，共 1 页</div>
+              <div class="pagination-actions">
+                <button class="button button-secondary small-button" id="reportPrevButton" type="button">上一页</button>
+                <button class="button button-secondary small-button" id="reportNextButton" type="button">下一页</button>
+              </div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop hidden" id="sourcesModal">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="sourcesModalTitle">
+        <div class="modal-head">
+          <div>
+            <h2 id="sourcesModalTitle">数据源配置</h2>
+            <p id="sourcesModalDescription">按顺序启用搜索源，并填写需要的 API Key 或代理。</p>
+          </div>
+          <button class="icon-button" id="closeSourcesButton" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="source-list" id="sourceList"></div>
+      </div>
+    </div>
+
+    <div class="modal-backdrop hidden" id="mismatchModal">
+      <div class="modal-card mismatch-modal-card" role="dialog" aria-modal="true" aria-labelledby="mismatchModalTitle">
+        <div class="modal-head">
+          <div>
+            <h2 id="mismatchModalTitle">不匹配修正建议</h2>
+            <p id="mismatchModalSubtitle">查看原始引用、搜索证据与推荐 BibTeX。</p>
+          </div>
+          <button class="icon-button" id="closeMismatchButton" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="mismatch-modal-body" id="mismatchModalBody"></div>
+        <div class="modal-footer">
+          <button class="button button-secondary" id="applyMismatchButton" type="button">应用</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" aria-live="polite"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
