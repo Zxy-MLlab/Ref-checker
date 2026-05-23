@@ -1,65 +1,62 @@
 # Ref. Checker
 
-Ref. Checker is a no-LLM reference verification tool for `.bib` files. It parses BibTeX entries, classifies references, validates them against configured sources, detects duplicates, and serves a web UI for review, correction, and export.
+A no-LLM bibliography verification tool for `.bib` files.
 
-## Features
+Ref. Checker parses BibTeX entries, classifies references, validates them against configurable sources, detects duplicates, and provides a web UI for review, correction, and export. It is designed for research workflows that need **deterministic**, **rule-based**, and **auditable** reference checking without relying on AI generation.
 
-- Parse `.bib` files into structured metadata
-- Classify entries into `paper`, `GitHub`, and `blog`
-- Validate papers with configurable search sources:
+## Highlights
+
+- Pure rule-based reference verification
+- Upload and parse `.bib` files in the browser
+- Automatic classification into:
+  - `paper`
+  - `GitHub`
+  - `blog`
+- Configurable validation sources:
   - `arxiv`
   - `crossref`
   - `openalex`
   - `serpapi`
   - `scholar-html`
-- Validate `GitHub` / `blog` entries through URL reachability
-- Detect duplicate references by DOI / arXiv ID / normalized title + year
-- Review results in a web UI with Chinese / English toggle
+- Duplicate detection by DOI / arXiv ID / normalized title + year
+- Review mismatches and apply corrected BibTeX back into a working `.bib`
 - Export:
-  - simplified Excel report
+  - Excel report
   - JSON report
   - corrected `.bib`
+- Chinese / English UI toggle
 
-## Project Structure
+## What It Does
 
-```text
-.
-├── backend_api.py           # FastAPI entrypoint
-├── bib_ref_checker.py       # BibTeX parsing, search adapters, rule-based matching
-├── reference_backend.py     # Job store, async analysis, exports, correction workflow
-├── frontend/                # Static frontend
-├── requirements.txt         # Python runtime dependencies
-├── environment.yml          # Conda environment file
-├── Dockerfile               # Container image
-├── docker-compose.yml       # One-command deployment
-└── .env.example             # Environment variable template
-```
+Ref. Checker follows a simple pipeline:
 
-## One-Command Deployment
+1. Parse `.bib` entries into structured metadata
+2. Classify each entry as a paper, GitHub repo, or blog/web reference
+3. Validate papers against selected scholarly sources
+4. Validate GitHub/blog references through URL reachability
+5. Compare returned metadata with the original BibTeX entry
+6. Mark each result as:
+   - `FOUND_MATCH`
+   - `FOUND_MISMATCH`
+   - `NOT_FOUND`
+7. Let users inspect, edit, apply, and export corrections
+
+## Quick Start
 
 ### Option A: Docker Compose
 
-This is the recommended way to let other people install and run the project quickly.
-
-1. Copy the environment template:
+Recommended for the fastest deployment.
 
 ```bash
 cp .env.example .env
-```
-
-2. Start the service:
-
-```bash
 docker compose up --build
 ```
 
-3. Open:
+Then open:
 
 ```text
 http://127.0.0.1:8000
 ```
-
-## Local Development
 
 ### Option B: Conda
 
@@ -76,28 +73,40 @@ python3 -m pip install -r requirements.txt
 uvicorn backend_api:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-## Environment Variables
+## Screenshots
 
-Copy `.env.example` to `.env` before deployment.
+### Overview
 
-| Variable | Default | Description |
-|---|---:|---|
-| `APP_PORT` | `8000` | Host port for Docker Compose |
-| `REFCHECK_MAX_UPLOAD_BYTES` | `10485760` | Max upload size in bytes |
-| `SERPAPI_API_KEY` | empty | Optional SerpApi key |
-| `HTTP_PROXY` | empty | Optional outbound proxy |
-| `HTTPS_PROXY` | empty | Optional outbound proxy |
+![Overview](assets/screenshots/overview.png)
 
-Internally, the service also uses:
+### Source Configuration
 
-- `REFCHECK_JOB_STORE_DIR`
-- `REFCHECK_CACHE_PATH`
+![Source Configuration](assets/screenshots/source-config.png)
 
-These are already set by `docker-compose.yml`.
+### Verification Report
 
-## Default Search Source Behavior
+![Verification Report](assets/screenshots/report.png)
 
-The frontend exposes these sources:
+## Interface Workflow
+
+The web UI is built around a lightweight review workflow:
+
+- Upload a `.bib` file
+- Parse entries and inspect duplicate references
+- Configure validation sources
+- Run verification
+- Filter results by:
+  - verdict
+  - reference type
+  - search query
+- Open mismatch suggestions in a modal
+- Edit the recommended `.bib`
+- Apply the correction into the working copy
+- Export the final report or corrected bibliography
+
+## Search Sources
+
+The frontend exposes the following sources:
 
 - `arxiv`
 - `crossref`
@@ -105,14 +114,83 @@ The frontend exposes these sources:
 - `serpapi`
 - `scholar-html`
 
-Default enabled behavior in the UI:
+Default UI behavior:
 
-- enabled: `arxiv`, `crossref`, `openalex`, `serpapi`
-- disabled: `scholar-html`
+- enabled by default:
+  - `arxiv`
+  - `crossref`
+  - `openalex`
+  - `serpapi`
+- disabled by default:
+  - `scholar-html`
 
-If the user enables only one source, the backend respects that selection and validates papers only with the chosen source(s).
+If a user enables only one source, the backend respects that configuration and validates papers only with the selected source(s).
 
-## Web API
+## Reference Types
+
+Ref. Checker currently routes validation based on detected reference category:
+
+### `paper`
+
+Papers are validated against configured scholarly sources and matched by rule-based comparison of:
+
+- title similarity
+- author overlap
+- year
+- venue
+- DOI
+- arXiv ID
+
+### `GitHub`
+
+GitHub references are validated through URL reachability.
+
+### `blog`
+
+Blog / general web references are also validated through URL reachability.
+
+## Duplicate Detection
+
+Duplicate reference groups are detected using strong, deterministic signals:
+
+- same DOI
+- same arXiv ID
+- same normalized title + year
+
+## Exports
+
+After verification, the project supports:
+
+- `report.json`
+- `report.xlsx`
+- corrected `modified.bib`
+
+The Excel report is simplified for manual review and grouped into three sheets:
+
+- `完全匹配`
+- `部分匹配`
+- `没有找到`
+
+## Environment Variables
+
+Copy `.env.example` to `.env` before deployment.
+
+| Variable | Default | Description |
+|---|---:|---|
+| `APP_PORT` | `8000` | Host port for Docker Compose |
+| `REFCHECK_MAX_UPLOAD_BYTES` | `10485760` | Maximum upload size in bytes |
+| `SERPAPI_API_KEY` | empty | Optional SerpApi key |
+| `HTTP_PROXY` | empty | Optional outbound proxy |
+| `HTTPS_PROXY` | empty | Optional outbound proxy |
+
+The service also supports:
+
+- `REFCHECK_JOB_STORE_DIR`
+- `REFCHECK_CACHE_PATH`
+
+These are already configured in `docker-compose.yml`.
+
+## API
 
 Main endpoints:
 
@@ -128,18 +206,50 @@ Main endpoints:
 - `GET /api/v1/jobs/{job_id}/report.xlsx`
 - `GET /api/v1/jobs/{job_id}/modified.bib`
 
-## Deployment Notes
+## Project Structure
 
-- `.job_store/` and cache files are ignored by Git and should not be committed
-- Docker Compose persists runtime data in the `refcheck_data` volume
-- For GitHub publication, keep only source code, docs, and example data you intentionally want to share
+```text
+.
+├── backend_api.py           # FastAPI entrypoint
+├── bib_ref_checker.py       # BibTeX parsing, search adapters, rule-based matching
+├── reference_backend.py     # Job store, async analysis, exports, correction workflow
+├── frontend/
+│   ├── index.html
+│   ├── app.js
+│   ├── styles.css
+│   └── site.css
+├── requirements.txt         # Python runtime dependencies
+├── environment.yml          # Conda environment
+├── Dockerfile               # Container image
+├── docker-compose.yml       # One-command deployment
+├── Makefile                 # Convenience commands
+└── .env.example             # Environment template
+```
 
-## Quick Commands
+## Development
 
-If you prefer `make`:
+If you prefer short commands:
 
 ```bash
 make install
 make dev
 make docker-up
+make docker-down
 ```
+
+## Deployment Notes
+
+- `.job_store/` and cache files should not be committed
+- Docker Compose persists runtime data in the `refcheck_data` volume
+- The repo is intended to stay clean: keep generated reports and local caches out of version control
+
+## Current Scope
+
+Ref. Checker is built for practical BibTeX QA workflows. It focuses on:
+
+- deterministic parsing
+- configurable source-based verification
+- auditability
+- interactive correction
+
+It does **not** use LLMs or AI generation for validation.

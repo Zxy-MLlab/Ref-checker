@@ -117,6 +117,9 @@ const I18N = {
     "unknown.venue": "Unknown Venue",
     "source.modal_title": "数据源配置",
     "source.modal_desc": "按顺序启用搜索源，并填写需要的 API Key 或代理。",
+    "source.enable_all": "全部启用",
+    "source.reset_default": "恢复默认",
+    "source.toolbar_note": "建议只启用你真正需要的搜索源，这样更快，也更不容易误判。",
     "source.priority": "Priority {index}",
     "source.api_key": "API Key",
     "source.proxy": "Proxy",
@@ -232,6 +235,9 @@ const I18N = {
     "unknown.venue": "Unknown Venue",
     "source.modal_title": "Source Configuration",
     "source.modal_desc": "Enable search sources in order and fill in any required API keys or proxies.",
+    "source.enable_all": "Enable all",
+    "source.reset_default": "Reset defaults",
+    "source.toolbar_note": "Enable only the sources you actually need for faster runs and fewer false matches.",
     "source.priority": "Priority {index}",
     "source.api_key": "API Key",
     "source.proxy": "Proxy",
@@ -269,6 +275,9 @@ const els = {
   newSessionButton: document.getElementById("newSessionButton"),
   languageToggleButton: document.getElementById("languageToggleButton"),
   openSourcesButton: document.getElementById("openSourcesButton"),
+  enableAllSourcesButton: document.getElementById("enableAllSourcesButton"),
+  resetSourcesButton: document.getElementById("resetSourcesButton"),
+  sourceToolbarNote: document.getElementById("sourceToolbarNote"),
   apiDocsLink: document.getElementById("apiDocsLink"),
   brandSubtitle: document.getElementById("brandSubtitle"),
   historyLabel: document.getElementById("historyLabel"),
@@ -418,6 +427,9 @@ function applyLocale() {
   });
   els.sourcesModalTitle.textContent = t("source.modal_title");
   els.sourcesModalDescription.textContent = t("source.modal_desc");
+  els.enableAllSourcesButton.textContent = t("source.enable_all");
+  els.resetSourcesButton.textContent = t("source.reset_default");
+  els.sourceToolbarNote.textContent = t("source.toolbar_note");
   els.mismatchModalTitle.textContent = t("details.mismatch_title");
   els.applyMismatchButton.textContent = t("button.apply");
   els.reportSearchSrOnly.textContent = t("search.report.aria");
@@ -678,15 +690,30 @@ function renderSources() {
 
   state.sources.forEach((source, index) => {
     const card = document.createElement("article");
-    card.className = "source-card";
+    card.className = `source-card${source.enabled ? " enabled" : ""}`;
+    const statusLabel = source.enabled ? (state.locale === "zh" ? "已启用" : "Enabled") : (state.locale === "zh" ? "已停用" : "Disabled");
+    const apiTag = source.supports_api_key ? (state.locale === "zh" ? "支持 API Key" : "API Key") : (state.locale === "zh" ? "无需 Key" : "No key");
+    const proxyTag = source.supports_proxy ? (state.locale === "zh" ? "支持代理" : "Proxy") : (state.locale === "zh" ? "不支持代理" : "No proxy");
     card.innerHTML = `
       <div class="source-header">
-        <div>
-          <h3>${source.name}</h3>
+        <div class="source-copy">
+          <div class="source-title-row">
+            <h3>${source.name}</h3>
+            <span class="source-status-pill${source.enabled ? " enabled" : ""}">${statusLabel}</span>
+          </div>
           <p class="source-desc">${descriptionMap[source.name] || t("source.description.default")}</p>
-          <p class="source-meta">${escapeHtml(t("source.priority", { index: index + 1 }))}</p>
+          <div class="source-meta-row">
+            <p class="source-meta">${escapeHtml(t("source.priority", { index: index + 1 }))}</p>
+            <div class="source-tags">
+              <span class="source-tag">${apiTag}</span>
+              <span class="source-tag">${proxyTag}</span>
+            </div>
+          </div>
         </div>
-        <input class="source-toggle" type="checkbox" ${source.enabled ? "checked" : ""} data-role="enabled" data-name="${source.name}" />
+        <label class="source-switch" aria-label="${source.name}">
+          <input class="source-toggle" type="checkbox" ${source.enabled ? "checked" : ""} data-role="enabled" data-name="${source.name}" />
+          <span class="source-switch-ui"></span>
+        </label>
       </div>
       <div class="source-list-fields">
         <label class="field">
@@ -701,6 +728,25 @@ function renderSources() {
     `;
     els.sourceList.appendChild(card);
   });
+}
+
+function getDefaultEnabled(name) {
+  return name !== "scholar-html";
+}
+
+function enableAllSources() {
+  state.sources = state.sources.map((source) => ({ ...source, enabled: true }));
+  renderSources();
+}
+
+function resetSourceDefaults() {
+  state.sources = state.sources.map((source) => ({
+    ...source,
+    enabled: getDefaultEnabled(source.name),
+    api_key: "",
+    proxy: "",
+  }));
+  renderSources();
 }
 
 function renderEntries(entries) {
@@ -963,7 +1009,7 @@ async function loadSources() {
   const payload = await fetchJson("/api/v1/sources");
   state.sources = (payload.sources || []).map((source) => ({
     ...source,
-    enabled: source.name !== "scholar-html",
+    enabled: getDefaultEnabled(source.name),
     api_key: "",
     proxy: "",
   }));
@@ -1222,6 +1268,8 @@ function wireEvents() {
     renderReport(state.reportEntries);
   });
   els.openSourcesButton.addEventListener("click", openSourcesModal);
+  els.enableAllSourcesButton.addEventListener("click", enableAllSources);
+  els.resetSourcesButton.addEventListener("click", resetSourceDefaults);
   els.closeSourcesButton.addEventListener("click", closeSourcesModal);
   els.closeMismatchButton.addEventListener("click", closeMismatchModal);
   els.applyMismatchButton.addEventListener("click", () => {
